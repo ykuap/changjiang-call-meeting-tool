@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>电话会议集锦生成器</title>
+  <link rel="icon" type="image/png" href="changjiang-research-icon.png?v=3">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #22262e;
+      --muted: #68717f;
+      --line: #dce1e7;
+      --paper: #f2f3f5;
+      --panel: #ffffff;
+      --accent: #d9272e;
+      --accent-dark: #b91f25;
+      --accent-soft: #fff3f3;
+      --shadow: 0 1px 2px rgba(24, 31, 42, 0.06);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body { margin: 0; min-height: 100vh; font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", Arial, sans-serif; color: var(--ink); background: var(--paper); }
+    button, input, select, textarea { font: inherit; }
+    .app { display: flex; flex-direction: column; width: min(1480px, calc(100vw - 32px)); height: 100vh; margin: 0 auto; padding: 14px 0; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex: 0 0 auto; padding: 12px 16px; margin-bottom: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    .brand { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .logo-lockup { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+    .logo-box { position: relative; width: 179px; height: 46px; overflow: hidden; flex: 0 0 auto; }
+    .logo { position: absolute; left: -36px; top: 0; width: 260px; height: auto; max-width: none; }
+    .logo-divider { width: 1px; height: 46px; flex: 0 0 auto; background: #cfd5dc; }
+    .research-logo-box { position: relative; width: 51px; height: 46px; overflow: hidden; flex: 0 0 auto; }
+    .research-logo { position: absolute; left: -16px; top: -2px; width: 72px; height: auto; max-width: none; }
+    .brand-copy { min-width: 0; }
+    h1 { margin: 0; font-size: 23px; line-height: 1.3; font-weight: 750; letter-spacing: 0; }
+    .hint { margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr); gap: 16px; align-items: stretch; flex: 1; min-height: 0; }
+    section { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 11px 16px; border-bottom: 1px solid var(--line); background: #fafbfc; }
+    h2 { margin: 0; font-size: 16px; line-height: 1.3; letter-spacing: 0; }
+    .tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    button { min-height: 36px; padding: 0 13px; border: 1px solid #cfd5dc; border-radius: 6px; background: #fff; color: #303744; font-size: 14px; cursor: pointer; box-shadow: 0 1px 1px rgba(24, 31, 42, 0.04); }
+    button:hover { border-color: #aeb6c0; }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    button.primary { border-color: var(--accent-dark); background: var(--accent); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(185, 31, 37, 0.16); }
+    button.primary:hover { background: var(--accent-dark); }
+    button.danger { color: var(--accent-dark); border-color: #e2bfc1; background: #fff; }
+    .body { flex: 1; min-height: 0; padding: 16px; overflow: auto; }
+    section:first-child .body, section:last-child .body { display: flex; flex-direction: column; overflow: hidden; }
+    label { display: block; margin: 0 0 6px; color: var(--muted); font-size: 13px; }
+    input, select, textarea { width: 100%; border: 1px solid #d5dbe2; border-radius: 7px; background: #fff; color: var(--ink); font-size: 14px; line-height: 1.55; padding: 9px 11px; outline: none; }
+    input:focus, select:focus, textarea:focus, .dropzone:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 39, 46, 0.1); }
+    .dropzone { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 116px; padding: 18px; border: 1px dashed #b9c1cb; border-radius: 8px; background: #f8f9fa; outline: none; cursor: pointer; }
+    .dropzone.loaded { border-style: solid; }
+    .dropzone.dragging { border-color: var(--accent); background: var(--accent-soft); }
+    .file-icon { display: grid; place-items: center; width: 42px; height: 48px; border: 1px solid #c7ced7; border-radius: 6px; background: #fff; color: var(--accent); font-size: 12px; font-weight: 750; }
+    .drop-copy strong { display: block; margin-bottom: 5px; font-size: 15px; line-height: 1.35; }
+    .drop-copy span { display: block; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .dropzone-actions { display: flex; gap: 8px; }
+    [hidden] { display: none !important; }
+    .table-wrap { flex: 1; min-height: 0; margin-top: 16px; border: 1px solid var(--line); border-radius: 7px; overflow: auto; }
+    table { width: 100%; min-width: 600px; border-collapse: collapse; table-layout: fixed; }
+    th, td { padding: 8px; border-bottom: 1px solid #e7eaee; text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; z-index: 1; background: #f6f7f9; color: #545d6a; font-size: 12px; font-weight: 650; }
+    tr:last-child td { border-bottom: 0; }
+    th:nth-child(1), td:nth-child(1) { width: 46px; text-align: center; }
+    th:nth-child(2), td:nth-child(2) { width: 76px; }
+    th:nth-child(4), td:nth-child(4) { width: 190px; }
+    td { color: #303744; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+    .meeting-link { color: #a91e24; text-decoration: none; }
+    .meeting-link:hover { text-decoration: underline; }
+    .empty-state { padding: 26px 16px; color: var(--muted); text-align: center; font-size: 13px; }
+    .output { flex: 1; min-height: 0; resize: none; white-space: pre-wrap; }
+    .stats { flex: 0 0 auto; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: #f7f8fa; color: #4f5866; font-size: 13px; line-height: 1.55; }
+    @media (max-width: 980px) {
+      html, body { height: auto; overflow: auto; }
+      .app { display: block; width: min(100vw - 20px, 780px); height: auto; padding: 12px 0; }
+      header, .grid { display: grid; grid-template-columns: 1fr; }
+      header { align-items: start; }
+      .brand { display: grid; grid-template-columns: 1fr; gap: 12px; justify-items: center; text-align: center; }
+      .logo-lockup { justify-content: center; max-width: 100%; }
+      .brand-copy { padding: 0; border: 0; }
+      .dropzone { grid-template-columns: 42px minmax(0, 1fr); }
+      .dropzone-actions { grid-column: 1 / -1; }
+      section { height: auto; }
+      section:first-child .body, section:last-child .body { display: block; overflow: visible; }
+      .table-wrap { min-height: 320px; }
+      .output { min-height: 480px; resize: vertical; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <div class="logo-lockup">
+          <div class="logo-box"><img class="logo" src="changjiang-logo-cropped.png" alt="长江证券"></div>
+          <span class="logo-divider" aria-hidden="true"></span>
+          <div class="research-logo-box"><img class="research-logo" src="changjiang-research-logo.png" alt="长江证券研究所"></div>
+        </div>
+        <div class="brand-copy">
+          <h1>电话会议集锦生成器</h1>
+          <p class="hint">导入进门财经会议列表，自动整理时间、标题和短链接</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <div class="section-head">
+          <h2>会议文件</h2>
+          <div class="tools">
+            <button id="clearBtn" class="danger" type="button">清空</button>
+            <button id="generateBtn" class="primary" type="button">生成排版</button>
+          </div>
+        </div>
+        <div class="body">
+          <input id="brand" type="hidden" value="长江证券">
+          <input id="meetingDate" type="hidden">
+          <select id="weekdaySelect" hidden>
+            <option value="周一">周一</option><option value="周二">周二</option><option value="周三">周三</option><option value="周四">周四</option><option value="周五">周五</option><option value="周六">周六</option><option value="周日">周日</option>
+          </select>
+
+          <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" hidden>
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="选择会议文件">
+            <div class="file-icon">XLS</div>
+            <div class="drop-copy"><strong id="fileName">拖入或选择会议文件</strong><span id="fileMeta">支持进门财经导出的 CSV、XLSX、XLS 文件</span></div>
+            <div class="dropzone-actions">
+              <button type="button" id="chooseBtn">选择文件</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table aria-label="会议明细">
+              <thead><tr><th>序号</th><th>时间</th><th>会议标题</th><th>短链接</th></tr></thead>
+              <tbody id="meetingRows"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState">导入文件后，可在这里浏览每条会议。</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head"><h2>生成结果</h2><div class="tools"><button id="copyBtn" type="button">复制全部</button></div></div>
+        <div class="body">
+          <textarea class="output" id="outputText" spellcheck="false" placeholder="导入文件后，排版结果会显示在这里，并且可以直接编辑。"></textarea>
+          <div class="stats" id="stats">将读取：路演标题、路演开始时间、进门页面短连接。</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const els = {
+      brand: document.getElementById("brand"), meetingDate: document.getElementById("meetingDate"), weekdaySelect: document.getElementById("weekdaySelect"),
+      fileInput: document.getElementById("fileInput"), dropzone: document.getElementById("dropzone"), chooseBtn: document.getElementById("chooseBtn"),
+      fileName: document.getElementById("fileName"), fileMeta: document.getElementById("fileMeta"), meetingRows: document.getElementById("meetingRows"),
+      emptyState: document.getElementById("emptyState"), outputText: document.getElementById("outputText"), stats: document.getElementById("stats"), generateBtn: document.getElementById("generateBtn"),
+      copyBtn: document.getElementById("copyBtn"), clearBtn: document.getElementById("clearBtn")
+    };
+    let meetings = [];
+    const columnAliases = {
+      title: ["路演标题", "会议标题", "标题"],
+      start: ["路演开始时间", "会议开始时间", "开始时间", "时间"],
+      url: ["进门页面短连接", "进门页面短链接", "短连接", "短链接", "链接"]
+    };
+
+    function setStatus() {}
+    function pad2(value) { return String(value).padStart(2, "0"); }
+    function weekdayFromDate(value) { return ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][new Date(`${value}T00:00:00`).getDay()]; }
+    function setDate(value) { if (/^\d{4}-\d{2}-\d{2}$/.test(value || "")) { els.meetingDate.value = value; els.weekdaySelect.value = weekdayFromDate(value); } }
+    function setDefaultDate() { const d = new Date(); setDate(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`); }
+    function formatDateText() { const match = els.meetingDate.value.match(/^(\d{4})-(\d{2})-(\d{2})$/); return match ? `${match[2]}月${match[3]}日${els.weekdaySelect.value}` : els.weekdaySelect.value; }
+    function findColumn(row, aliases) { const key = Object.keys(row).find(name => aliases.includes(String(name).trim())); return key ? row[key] : ""; }
+    function normalizeStart(value) {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())} ${pad2(value.getHours())}:${pad2(value.getMinutes())}`;
+      const text = String(value ?? "").trim().replace(/\//g, "-");
+      const full = text.match(/(\d{4})-(\d{1,2})-(\d{1,2})[^\d]+(\d{1,2}):([0-5]\d)/);
+      if (full) return `${full[1]}-${pad2(full[2])}-${pad2(full[3])} ${pad2(full[4])}:${full[5]}`;
+      const time = text.match(/(?:^|\s)([0-2]?\d):([0-5]\d)/);
+      return time ? `${pad2(time[1])}:${time[2]}` : "";
+    }
+    function cleanTitle(value) {
+      return String(value ?? "").trim().replace(/[｜丨]/g, "|").replace(/\s*\|\s*/g, " | ").replace(/(长江[\u4e00-\u9fffA-Za-z&+·]+)\s*[0-2]?\d:[0-5]\d\s*\|/, "$1 |").replace(/\s+-\s+/g, "——").replace(/\s+/g, " ").trim();
+    }
+    function cleanUrl(value) {
+      const text = String(value ?? "").trim();
+      const match = text.match(/https?:\/\/[^\s,，]+/i);
+      return (match ? match[0] : text).replace(/^https?:\/+/, "https://").replace(/[。；;，,]+$/g, "").trim();
+    }
+    function parseCsv(text) {
+      const rows = []; let row = []; let cell = ""; let quoted = false; const source = text.replace(/^\uFEFF/, "");
+      for (let i = 0; i < source.length; i += 1) {
+        const char = source[i];
+        if (char === '"') { if (quoted && source[i + 1] === '"') { cell += '"'; i += 1; } else quoted = !quoted; }
+        else if (char === "," && !quoted) { row.push(cell); cell = ""; }
+        else if ((char === "\n" || char === "\r") && !quoted) { if (char === "\r" && source[i + 1] === "\n") i += 1; row.push(cell); if (row.some(value => value !== "")) rows.push(row); row = []; cell = ""; }
+        else cell += char;
+      }
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      const headers = (rows.shift() || []).map(value => value.trim());
+      return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""])));
+    }
+    async function rowsFromFile(file) {
+      const extension = file.name.split(".").pop().toLowerCase();
+      if (extension === "csv") {
+        const buffer = await file.arrayBuffer(); let text = new TextDecoder("utf-8").decode(buffer);
+        if (text.includes("�")) { try { text = new TextDecoder("gb18030").decode(buffer); } catch (_) {} }
+        return parseCsv(text);
+      }
+      if (!window.XLSX) throw new Error("Excel解析组件未加载，请检查网络后重试，或导出为CSV文件。");
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
+      return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "", raw: false });
+    }
+    function rowsToMeetings(rows) {
+      return rows.map((row, index) => {
+        const start = normalizeStart(findColumn(row, columnAliases.start));
+        const date = start.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || "";
+        const time = start.match(/([0-2]\d:[0-5]\d)$/)?.[1] || "";
+        return { title: cleanTitle(findColumn(row, columnAliases.title)), date, time, url: cleanUrl(findColumn(row, columnAliases.url)), sourceIndex: index };
+      }).filter(item => item.title && item.time);
+    }
+    function dedupeAndSort(items, reverseEqualTimes = false) {
+      const unique = new Map();
+      items.forEach(item => { const key = `${item.time}|${item.title.replace(/\s+/g, "")}|${item.url}`; if (!unique.has(key)) unique.set(key, item); });
+      return [...unique.values()].sort((a, b) => a.time.localeCompare(b.time) || (reverseEqualTimes ? b.sourceIndex - a.sourceIndex : a.sourceIndex - b.sourceIndex));
+    }
+    function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function renderRows() {
+      els.meetingRows.innerHTML = ""; els.emptyState.hidden = meetings.length > 0;
+      meetings.forEach((meeting, index) => {
+        const row = document.createElement("tr");
+        const link = meeting.url ? `<a class="meeting-link" href="${escapeHtml(meeting.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(meeting.url)}</a>` : "—";
+        row.innerHTML = `<td>${index + 1}</td><td>${escapeHtml(meeting.time)}</td><td>${escapeHtml(meeting.title)}</td><td>${link}</td>`;
+        els.meetingRows.append(row);
+      });
+    }
+    function listNumber(index) { const digits = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]; return String(index + 1).split("").map(digit => digits[Number(digit)]).join(""); }
+    function splitMeetings(items) {
+      if (items.length <= 12) return [{ suffix: "", items }];
+      if (items.length <= 24) return [{ suffix: "（上）", items: items.slice(0, 12) }, { suffix: "（下）", items: items.slice(12) }];
+      return [{ suffix: "（上）", items: items.slice(0, 12) }, { suffix: "（中）", items: items.slice(12, 24) }, { suffix: "（下）", items: items.slice(24) }];
+    }
+    function formatOutput() {
+      if (!meetings.length) { els.outputText.value = ""; els.stats.textContent = "没有可生成的会议，请先导入文件。"; setStatus("请先导入文件"); return; }
+      const brand = els.brand.value.trim() || "长江证券"; const dateText = formatDateText(); let globalIndex = 0;
+      const parts = splitMeetings(meetings).map(part => {
+        const body = part.items.map(item => { const number = listNumber(globalIndex++); return `${number} ${item.time}${item.title}\n${item.url}`; }).join("\n\n");
+        return `🌹${brand}【${dateText}】电话会议集锦${part.suffix}\n\n🎁专题电话会\n${body}`;
+      });
+      els.outputText.value = parts.join("\n\n\n");
+      const missing = meetings.filter(item => !item.url).length;
+      els.stats.textContent = missing ? `已生成 ${meetings.length} 场会议，其中 ${missing} 场缺少短链接。` : `已生成 ${meetings.length} 场会议，共 ${parts.length} 篇。`;
+      setStatus("已生成");
+    }
+    async function importFile(file) {
+      if (!file) return; const extension = file.name.split(".").pop().toLowerCase();
+      if (!["csv", "xlsx", "xls"].includes(extension)) { setStatus("请选择CSV或Excel文件"); return; }
+      setStatus("正在读取文件"); els.generateBtn.disabled = true;
+      try {
+        meetings = dedupeAndSort(rowsToMeetings(await rowsFromFile(file)), true);
+        if (!meetings.length) throw new Error("没有找到有效会议，请确认文件包含路演标题、路演开始时间和短链接列。");
+        const dateFromRow = meetings.find(item => item.date)?.date; const dateFromName = file.name.match(/20\d{2}-\d{2}-\d{2}/)?.[0]; setDate(dateFromRow || dateFromName || els.meetingDate.value);
+        els.fileName.textContent = file.name; els.fileMeta.textContent = `${meetings.length} 场会议 · ${Math.max(1, Math.round(file.size / 1024))} KB`;
+        els.chooseBtn.textContent = "更换文件"; els.dropzone.classList.add("loaded");
+        els.outputText.value = ""; els.stats.textContent = `已读取 ${meetings.length} 场会议，请点击“生成排版”。`;
+        renderRows(); setStatus("文件已导入，待生成");
+      } catch (error) {
+        console.error(error); meetings = []; renderRows(); els.outputText.value = ""; els.stats.textContent = error.message; setStatus("文件读取失败");
+      } finally { els.generateBtn.disabled = false; els.fileInput.value = ""; }
+    }
+    function openFilePicker(event) { event?.stopPropagation(); els.fileInput.click(); }
+    function clearAll() {
+      meetings = []; els.fileInput.value = ""; els.fileName.textContent = "拖入或选择会议文件"; els.fileMeta.textContent = "支持进门财经导出的 CSV、XLSX、XLS 文件"; els.outputText.value = "";
+      els.chooseBtn.textContent = "选择文件"; els.dropzone.classList.remove("loaded");
+      els.stats.textContent = "将读取：路演标题、路演开始时间、进门页面短连接。"; renderRows(); setStatus("等待导入文件");
+    }
+
+    els.chooseBtn.addEventListener("click", openFilePicker); els.dropzone.addEventListener("click", openFilePicker);
+    els.dropzone.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") openFilePicker(event); });
+    els.fileInput.addEventListener("change", () => importFile(els.fileInput.files[0]));
+    els.dropzone.addEventListener("dragover", event => { event.preventDefault(); els.dropzone.classList.add("dragging"); });
+    els.dropzone.addEventListener("dragleave", () => els.dropzone.classList.remove("dragging"));
+    els.dropzone.addEventListener("drop", event => { event.preventDefault(); els.dropzone.classList.remove("dragging"); importFile(event.dataTransfer.files[0]); });
+    els.generateBtn.addEventListener("click", formatOutput); els.clearBtn.addEventListener("click", clearAll);
+    els.copyBtn.addEventListener("click", async () => {
+      if (!els.outputText.value.trim()) return;
+      try { await navigator.clipboard.writeText(els.outputText.value); } catch (_) { els.outputText.select(); document.execCommand("copy"); }
+      setStatus("已复制全部结果");
+    });
+    els.meetingDate.addEventListener("change", () => { if (els.meetingDate.value) els.weekdaySelect.value = weekdayFromDate(els.meetingDate.value); if (meetings.length) formatOutput(); });
+    els.weekdaySelect.addEventListener("change", () => { if (meetings.length) formatOutput(); }); els.brand.addEventListener("input", () => { if (meetings.length) formatOutput(); });
+    els.outputText.addEventListener("input", () => setStatus("结果已手动修改"));
+    setDefaultDate(); renderRows();
+  </script>
+</body>
+</html>
