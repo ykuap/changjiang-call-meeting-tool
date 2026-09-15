@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>长江研究内容生成器</title>
+  <title>长江研究内容工作台</title>
   <link rel="icon" type="image/png" href="changjiang-research-icon.png?v=3">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
@@ -113,7 +113,7 @@
           <div class="research-logo-box"><img class="research-logo" src="changjiang-research-logo.png" alt="长江证券研究所"></div>
         </div>
         <div class="brand-copy">
-          <h1>长江研究内容生成器</h1>
+          <h1>长江研究内容工作台</h1>
           <p class="hint" id="appHint">导入进门财经会议列表，自动整理时间、标题和短链接</p>
         </div>
       </div>
@@ -371,6 +371,7 @@
     els.generateBtn.addEventListener("click", formatOutput); els.clearBtn.addEventListener("click", clearAll);
     els.meetingModeBtn.addEventListener("click", () => setMode("meeting")); els.roadshowModeBtn.addEventListener("click", () => setMode("roadshow"));
     document.querySelectorAll('input[name="region"]').forEach(input => input.addEventListener("change", () => {
+      if (!selectedRegions().length) input.checked = true;
       if (!importedRows.length) return; roadshows = rowsToRoadshows(importedRows); els.outputText.value = ""; renderRows();
       els.stats.textContent = roadshows.length ? `当前区域筛选出 ${roadshows.length} 个研究小组，请点击“生成排版”。` : "当前区域没有可生成的路演。";
     }));
