@@ -145,7 +145,6 @@
               <label class="region-option"><input type="checkbox" name="region" value="华东" checked><span>华东 · 上海</span></label>
               <label class="region-option"><input type="checkbox" name="region" value="华南" checked><span>华南 · 深圳</span></label>
               <label class="region-option"><input type="checkbox" name="region" value="华北" checked><span>华北 · 北京</span></label>
-              <label class="region-option"><input type="checkbox" name="region" value="其他"><span>其他</span></label>
             </div>
           </div>
 
@@ -189,8 +188,7 @@
       appHint: document.getElementById("appHint"), detailHead: document.getElementById("detailHead")
     };
     let mode = "meeting"; let meetings = []; let roadshows = []; let importedRows = [];
-    const regionCities = { "华东": "上海", "华南": "深圳", "华北": "北京", "其他": "其他地区" };
-    const namedRegions = ["华东", "华南", "华北"];
+    const regionCities = { "华东": "上海", "华南": "深圳", "华北": "北京" };
     const columnAliases = {
       title: ["路演标题", "会议标题", "标题"],
       start: ["路演开始时间", "会议开始时间", "开始时间", "时间"],
@@ -268,9 +266,9 @@
       rows.forEach((row, sourceIndex) => {
         const team = String(row["小组"] ?? "").trim(); const analyst = String(row["研究员姓名"] ?? "").trim();
         if (!team || !analyst) return;
-        const scheduleText = Object.keys(row).filter(key => dateColumnPattern.test(String(key).trim())).map(key => String(row[key] ?? "")).join(" ");
-        const detectedRegions = namedRegions.filter(region => scheduleText.includes(region));
-        const matchedRegions = detectedRegions.length ? detectedRegions.filter(region => wanted.includes(region)) : (wanted.includes("其他") ? ["其他"] : []);
+        const matchedRegions = [...new Set(Object.keys(row).filter(key => dateColumnPattern.test(String(key).trim())).flatMap(key => {
+          const value = String(row[key] ?? ""); return wanted.filter(region => value.includes(region));
+        }))];
         if (!matchedRegions.length) return;
         const highlight = cleanRoadshowTopic(row["路演亮点"]); const content = cleanRoadshowTopic(row["路演内容"]);
         const topic = highlight || content; if (!topic) return;
